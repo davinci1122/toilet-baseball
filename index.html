@@ -1,0 +1,855 @@
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800;900&family=Chango&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --grass:#2E9E5B; --grass-dk:#268A4E; --grass-lt:#3BB56A;
+    --dirt:#D98E4A; --dirt-dk:#C57C3A;
+    --amber:#F5A623; --amber-dk:#E08E10;
+    --navy:#1B2A4A; --navy2:#243A63;
+    --red:#E24B4A; --teal:#1D9E75; --purple:#7F77DD;
+    --cream:#FFF9EE; --ink:#22303F; --line:rgba(27,42,74,.14);
+    --gold:#FFD24A;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%}
+  body{
+    font-family:"M PLUS Rounded 1c",system-ui,sans-serif;
+    background:var(--navy); color:var(--ink);
+    -webkit-font-smoothing:antialiased; overflow:hidden;
+  }
+  #app{
+    max-width:480px; margin:0 auto; height:100dvh; position:relative;
+    background:var(--cream); display:flex; flex-direction:column; overflow:hidden;
+  }
+  .num{font-family:"Chango",sans-serif; font-variant-numeric:tabular-nums; letter-spacing:.5px}
+  .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+  /* ===== top bar ===== */
+  .topbar{
+    background:var(--navy); color:#fff; padding:12px 16px calc(12px + env(safe-area-inset-top));
+    padding-top:max(12px,env(safe-area-inset-top)); display:flex; align-items:center; gap:10px;
+    box-shadow:0 2px 0 rgba(0,0,0,.15);
+  }
+  .logo{font-family:"Chango";font-size:19px;color:var(--gold);line-height:1}
+  .logo small{color:#fff;font-size:12px;font-family:"M PLUS Rounded 1c";font-weight:800;margin-left:4px}
+  .vs-chip{margin-left:auto;font-weight:800;font-size:12px;background:rgba(255,255,255,.12);padding:5px 10px;border-radius:999px}
+
+  /* ===== screens ===== */
+  main{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
+  .screen{display:none;min-height:100%}
+  .screen.active{display:block}
+  .pad{padding:16px 16px 24px}
+
+  /* ===== scoreboard mini (home) ===== */
+  .board{
+    background:var(--navy); border-radius:16px; padding:14px 16px; color:#fff;
+    box-shadow:0 4px 0 var(--navy2); position:relative; overflow:hidden;
+  }
+  .board .lights{position:absolute;inset:0;background:
+    radial-gradient(circle at 20% 0,rgba(255,210,74,.18),transparent 40%),
+    radial-gradient(circle at 80% 0,rgba(255,210,74,.18),transparent 40%);pointer-events:none}
+  .board-row{display:flex;align-items:center;justify-content:space-between;gap:8px;position:relative}
+  .team{display:flex;align-items:center;gap:8px;font-weight:800;font-size:14px}
+  .team .dot{width:22px;height:22px;border-radius:6px;display:grid;place-items:center;font-size:13px}
+  .score-you .dot{background:var(--gold);color:var(--navy)}
+  .score-com .dot{background:var(--red);color:#fff}
+  .score-val{font-family:"Chango";font-size:30px;color:var(--gold);min-width:44px;text-align:center}
+  .score-com .score-val{color:#fff}
+  .board hr{border:none;border-top:1px dashed rgba(255,255,255,.2);margin:8px 0}
+  .board-foot{display:flex;justify-content:space-between;font-size:11px;font-weight:700;color:rgba(255,255,255,.7);position:relative}
+
+  /* ===== big buttons ===== */
+  .measure-wrap{padding:8px 16px 20px}
+  .prompt{text-align:center;font-weight:800;color:var(--navy);margin:18px 0 14px;font-size:15px}
+  .btn-row{display:flex;gap:14px}
+  .bigbtn{
+    flex:1; border:none; border-radius:24px; padding:26px 10px 22px; color:#fff; cursor:pointer;
+    font-family:"M PLUS Rounded 1c";font-weight:900; text-align:center; position:relative;
+    box-shadow:0 6px 0 rgba(0,0,0,.18); transition:transform .08s, box-shadow .08s;
+  }
+  .bigbtn:active{transform:translateY(4px);box-shadow:0 2px 0 rgba(0,0,0,.18)}
+  .bigbtn .ic{font-size:44px;line-height:1;display:block}
+  .bigbtn .nm{font-size:26px;margin-top:6px}
+  .bigbtn .goal{font-size:12px;font-weight:800;opacity:.9;margin-top:4px}
+  .btn-big{background:linear-gradient(180deg,var(--dirt),var(--dirt-dk))}
+  .btn-small{background:linear-gradient(180deg,var(--amber),var(--amber-dk))}
+  .hint{text-align:center;color:#8a7f6d;font-size:12px;font-weight:700;margin-top:16px}
+  .link-btn{background:none;border:none;color:var(--navy);font-weight:800;font-size:13px;text-decoration:underline;cursor:pointer;padding:6px}
+
+  /* ===== timer overlay ===== */
+  .overlay{position:absolute;inset:0;z-index:40;display:none;flex-direction:column;
+    align-items:center;justify-content:center;padding:24px;text-align:center;color:#fff}
+  .overlay.show{display:flex}
+  .ov-timer{background:linear-gradient(180deg,var(--navy2),var(--navy))}
+  .measuring-badge{font-weight:900;font-size:15px;background:rgba(255,255,255,.15);padding:8px 18px;border-radius:999px}
+  .clock{font-family:"Chango";font-size:74px;color:var(--gold);margin:18px 0 6px;text-shadow:0 4px 0 rgba(0,0,0,.25)}
+  .predict{font-weight:900;font-size:20px;min-height:26px;transition:color .2s}
+  .predict small{display:block;font-size:12px;font-weight:800;opacity:.7;margin-top:2px}
+  .ov-actions{display:flex;gap:12px;margin-top:34px;width:100%;max-width:340px}
+  .done-btn{flex:2;background:var(--gold);color:var(--navy);border:none;border-radius:20px;
+    padding:20px;font-family:"M PLUS Rounded 1c";font-weight:900;font-size:20px;cursor:pointer;box-shadow:0 5px 0 #d9a600}
+  .done-btn:active{transform:translateY(3px);box-shadow:0 2px 0 #d9a600}
+  .cancel-btn{flex:1;background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.3);
+    border-radius:20px;font-weight:800;cursor:pointer}
+
+  /* ===== result overlay ===== */
+  .ov-result{background:linear-gradient(180deg,#0d1830,var(--navy))}
+  .field-mini{width:230px;height:170px;position:relative;margin-bottom:10px}
+  .ball{position:absolute;width:16px;height:16px;border-radius:50%;background:#fff;
+    box-shadow:0 0 0 2px #ddd inset;left:107px;bottom:6px;opacity:0}
+  .stamp{font-family:"Chango";font-size:40px;color:var(--gold);opacity:0;transform:scale(.3) rotate(-8deg);
+    text-shadow:0 3px 0 rgba(0,0,0,.3)}
+  .stamp.pop{animation:stampPop .5s cubic-bezier(.2,1.6,.4,1) forwards}
+  @keyframes stampPop{to{opacity:1;transform:scale(1) rotate(-8deg)}}
+  .stamp.foul{color:#c9c9c9}.stamp.eject{color:var(--red)}
+  .call{font-weight:900;font-size:16px;color:#fff;margin-top:6px;max-width:320px;min-height:44px}
+  .bases-won{font-weight:900;color:var(--gold);margin-top:4px}
+  .health-tip{font-size:12px;font-weight:700;color:#ffd7d7;background:rgba(226,75,74,.18);
+    padding:8px 12px;border-radius:10px;margin-top:10px;max-width:300px}
+  .next-btn{margin-top:22px;background:var(--gold);color:var(--navy);border:none;border-radius:18px;
+    padding:14px 40px;font-weight:900;font-size:16px;cursor:pointer;box-shadow:0 4px 0 #d9a600}
+  .confetti{position:absolute;top:-10px;width:8px;height:14px;opacity:0}
+  .confetti.go{animation:fall linear forwards}
+  @keyframes fall{0%{opacity:1;transform:translateY(0) rotate(0)}100%{opacity:0;transform:translateY(320px) rotate(540deg)}}
+
+  /* ===== field screen ===== */
+  /* field screen = full bleed */
+  #s-field{display:none;height:100%;flex-direction:column}
+  #s-field.active{display:flex}
+  .seg{display:flex;background:#eadfce;border-radius:12px;padding:4px;font-weight:800;font-size:13px;flex:none}
+  .seg button{flex:1;border:none;background:none;padding:9px;border-radius:9px;cursor:pointer;color:#8a7f6d;font-weight:800;font-family:inherit}
+  .seg button.on{background:#fff;color:var(--navy);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+  .field-full{flex:1;min-height:0;background:linear-gradient(180deg,#7ec98f,var(--grass) 70%,var(--grass-dk));
+    position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden}
+  .field-full svg{width:100%;height:100%;display:block}
+  .legend-float{position:absolute;top:10px;right:12px;display:flex;flex-direction:column;gap:6px;
+    background:rgba(13,24,48,.45);backdrop-filter:blur(2px);padding:8px 10px;border-radius:12px;font-size:11px;font-weight:800;color:#fff}
+  .legend-float span{display:inline-flex;align-items:center;gap:6px}
+  .legend-float .m{width:14px;text-align:center;font-size:14px}
+  .field-empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;
+    color:#fff;font-weight:800;font-size:14px;padding:30px;text-shadow:0 1px 3px rgba(0,0,0,.3)}
+  .empty{text-align:center;color:#8a7f6d;font-weight:700;padding:26px 10px;font-size:13px}
+  .field-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);flex:none;border-top:1px solid var(--line)}
+  .stat{background:var(--cream);padding:12px 8px;text-align:center}
+  .stat .v{font-family:"Chango";font-size:26px;color:var(--navy)}
+  .stat .l{font-size:11px;font-weight:800;color:#8a7f6d;margin-top:2px}
+
+  /* ===== score screen ===== */
+  .card{background:#fff;border-radius:16px;padding:16px;box-shadow:0 3px 0 var(--line);margin-bottom:14px}
+  .card h3{margin:0 0 12px;font-size:15px;font-weight:900;color:var(--navy);display:flex;align-items:center;gap:6px}
+  .linescore{width:100%;border-collapse:collapse;font-weight:800;text-align:center}
+  .linescore th,.linescore td{padding:7px 4px;font-size:13px}
+  .linescore thead th{color:#8a7f6d;font-size:11px;border-bottom:2px solid var(--line)}
+  .linescore .rlabel{text-align:left;display:flex;align-items:center;gap:6px}
+  .linescore .tot{font-family:"Chango";font-size:20px}
+  .pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:900}
+  .pill.w{background:#d9f2e4;color:var(--teal)}.pill.l{background:#fde0e0;color:var(--red)}
+  .pill.ng{background:#eee6d7;color:#8a7f6d}
+  .com-log{display:flex;flex-wrap:wrap;gap:5px;margin-top:10px}
+  .ab{font-size:10px;font-weight:900;padding:3px 6px;border-radius:6px;background:#eee6d7;color:#8a7f6d}
+  .ab.hit{background:#d9f2e4;color:var(--teal)}.ab.hr{background:#efe9ff;color:var(--purple)}
+  .streak{font-family:"Chango";font-size:30px;color:var(--amber-dk)}
+  .month-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--line);font-weight:800;font-size:13px}
+  .month-row:last-child{border:none}
+
+  /* ===== history ===== */
+  .hrow{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--line)}
+  .hrow .hic{font-size:22px;width:26px;text-align:center}
+  .hrow .hmid{flex:1}
+  .hrow .hres{font-weight:900;font-size:13px}
+  .hrow .hsub{font-size:11px;color:#8a7f6d;font-weight:700}
+  .hrow .htime{font-family:"Chango";font-size:16px;color:var(--navy)}
+  .del{background:none;border:none;color:#c9bda9;font-size:18px;cursor:pointer;padding:4px}
+
+  /* ===== settings ===== */
+  .setrow{padding:14px 0;border-bottom:1px solid var(--line)}
+  .setrow .lab{font-weight:800;font-size:14px;color:var(--navy);display:flex;justify-content:space-between}
+  .setrow .lab .cur{font-family:"Chango";color:var(--amber-dk);font-size:16px}
+  .setrow input[type=range]{width:100%;margin-top:10px;accent-color:var(--amber-dk)}
+  .diff-seg{display:flex;gap:8px;margin-top:10px}
+  .diff-seg button{flex:1;border:1px solid var(--line);background:#fff;border-radius:10px;padding:10px;font-weight:800;cursor:pointer;font-family:inherit;color:#8a7f6d}
+  .diff-seg button.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+  .toggle{position:relative;width:46px;height:26px;background:#d6cbb8;border-radius:999px;cursor:pointer;transition:background .2s;flex:none}
+  .toggle.on{background:var(--teal)}
+  .toggle::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;background:#fff;border-radius:50%;transition:transform .2s}
+  .toggle.on::after{transform:translateX(20px)}
+  .danger{color:var(--red);font-weight:800;background:none;border:1px solid var(--red);border-radius:10px;padding:11px;width:100%;cursor:pointer;font-family:inherit;margin-top:6px}
+
+  /* ===== bottom nav ===== */
+  nav{display:flex;background:#fff;border-top:1px solid var(--line);
+    padding-bottom:env(safe-area-inset-bottom)}
+  nav button{flex:1;border:none;background:none;padding:9px 0 8px;cursor:pointer;
+    display:flex;flex-direction:column;align-items:center;gap:2px;color:#b3a894;font-family:inherit}
+  nav button .ni{font-size:21px}
+  nav button .nl{font-size:10px;font-weight:800}
+  nav button.on{color:var(--navy)}
+
+  .modal-bg{position:absolute;inset:0;background:rgba(13,24,48,.6);z-index:60;display:none;
+    align-items:center;justify-content:center;padding:24px}
+  .modal-bg.show{display:flex}
+  .modal{background:#fff;border-radius:18px;padding:22px;max-width:340px;width:100%;text-align:center}
+  .modal h4{margin:0 0 8px;font-weight:900;color:var(--navy)}
+  .modal p{font-size:13px;color:#6b6151;font-weight:700;margin:0 0 16px}
+  .modal .row{display:flex;gap:10px}
+  .modal button{flex:1;border-radius:12px;padding:12px;font-weight:900;cursor:pointer;border:none;font-family:inherit}
+  .modal .ok{background:var(--navy);color:#fff}.modal .no{background:#eee6d7;color:#8a7f6d}
+  .modal input,.modal select{width:100%;padding:11px;border:1px solid var(--line);border-radius:10px;font-family:inherit;font-weight:700;margin:6px 0}
+</style>
+
+<div id="app">
+  <div class="topbar">
+    <div class="logo">⚾トイベー<small>TOILET BASEBALL</small></div>
+    <div class="vs-chip" id="vsChip">vs ベンピーズ</div>
+  </div>
+
+  <main>
+    <!-- HOME -->
+    <section class="screen active" id="s-home">
+      <div class="pad">
+        <div class="board">
+          <div class="lights"></div>
+          <div class="board-row score-you">
+            <div class="team"><span class="dot">🧢</span>あなた</div>
+            <div class="score-val" id="homeYou">0</div>
+          </div>
+          <hr>
+          <div class="board-row score-com">
+            <div class="team"><span class="dot">👿</span><span id="comName2">ベンピーズ</span></div>
+            <div class="score-val" id="homeCom">0</div>
+          </div>
+          <div class="board-foot">
+            <span id="homeInning">本日 0 打席</span>
+            <span id="homeStatus">プレイボール前</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="measure-wrap">
+        <div class="prompt">🚽 トイレに行ったら押す！</div>
+        <div class="btn-row">
+          <button class="bigbtn btn-big" onclick="start('big')">
+            <span class="ic">💩</span><span class="nm">大</span><span class="goal">目標 HR / 3〜5分</span>
+          </button>
+          <button class="bigbtn btn-small" onclick="start('small')">
+            <span class="ic">💧</span><span class="nm">小</span><span class="goal">目標 H / 〜2分</span>
+          </button>
+        </div>
+        <div class="hint">出るときに種類を押す → 済んだら「ナイスバッティング！」</div>
+        <div style="text-align:center;margin-top:6px">
+          <button class="link-btn" onclick="openManual()">＋ あとから手動で記録</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- FIELD -->
+    <section class="screen" id="s-field">
+      <div style="padding:12px 12px 10px;flex:none">
+        <div class="seg" id="rangeSeg">
+          <button class="on" data-r="today" onclick="setRange('today')">今日</button>
+          <button data-r="week" onclick="setRange('week')">今週</button>
+          <button data-r="month" onclick="setRange('month')">今月</button>
+        </div>
+      </div>
+      <div class="field-full" id="fieldFull">
+        <div id="fieldSvg" style="width:100%;height:100%"></div>
+        <div class="legend-float">
+          <span><span class="m" style="color:#c9c2ff">★</span>大（HR狙い）</span>
+          <span><span class="m" style="color:#8affce">●</span>小（H狙い）</span>
+          <span><span class="m" style="color:#ff9a9a">✕</span>時間超過（アウト）</span>
+        </div>
+      </div>
+      <div class="field-stats" id="fieldStats"></div>
+    </section>
+
+    <!-- SCORE -->
+    <section class="screen" id="s-score">
+      <div class="pad" id="scoreBody"></div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section class="screen" id="s-set">
+      <div class="pad">
+        <div class="card">
+          <h3>⚾ 難易度（COMの強さ）</h3>
+          <div class="diff-seg" id="diffSeg">
+            <button data-d="rookie" onclick="setDiff('rookie')">ルーキー</button>
+            <button data-d="pro" onclick="setDiff('pro')">プロ</button>
+            <button data-d="legend" onclick="setDiff('legend')">レジェンド</button>
+          </div>
+        </div>
+        <div class="card">
+          <h3>📅 シーズン（ペナント）の長さ</h3>
+          <div class="diff-seg" id="seasonSeg">
+            <button data-n="3" onclick="setSeasonLen(3)">3日</button>
+            <button data-n="7" onclick="setSeasonLen(7)">7日</button>
+            <button data-n="14" onclick="setSeasonLen(14)">14日</button>
+            <button data-n="30" onclick="setSeasonLen(30)">30日</button>
+          </div>
+          <p style="font-size:11px;color:#8a7f6d;font-weight:700;margin:10px 0 0">
+            1日＝1試合。この日数を1シーズンとして勝ち越し（優勝）を競います。終了すると自動で次シーズン開始。</p>
+        </div>
+        <div class="card">
+          <h3>🎯 判定ライン（分）</h3>
+          <div class="setrow">
+            <div class="lab">大：HRゾーン上限 <span class="cur"><span id="thHRv">5</span>分</span></div>
+            <input type="range" id="thHR" min="3" max="8" step="1" oninput="setTh('hr',this.value)">
+          </div>
+          <div class="setrow" style="border:none">
+            <div class="lab">小：ヒット判定ライン <span class="cur"><span id="thSmv">2</span>分</span></div>
+            <input type="range" id="thSm" min="1" max="4" step="1" oninput="setTh('sm',this.value)">
+          </div>
+          <p style="font-size:11px;color:#8a7f6d;font-weight:700;margin:6px 0 0">
+            医学的には排便5分以内が目安。ストイックにしたいほど短く。</p>
+        </div>
+        <div class="card">
+          <h3>🔔 その他</h3>
+          <div class="setrow" style="border:none">
+            <div class="lab" style="align-items:center">効果音（HR時のファンファーレ）
+              <span class="toggle" id="soundTg" onclick="toggleSound()"></span></div>
+            <p style="font-size:11px;color:#8a7f6d;font-weight:700;margin:8px 0 0">
+              個室で鳴ると恥ずかしいので初期OFF。</p>
+          </div>
+        </div>
+        <div class="card">
+          <h3>🗂 データ</h3>
+          <label style="display:block;font-size:12px;font-weight:800;color:#8a7f6d;margin-bottom:6px">月を選んでCSV出力</label>
+          <div style="display:flex;gap:8px;margin-bottom:14px">
+            <select id="csvMonth" style="flex:1"></select>
+            <button onclick="exportCSV()" style="border:1px solid var(--navy);background:var(--navy);color:#fff;border-radius:10px;padding:0 16px;font-weight:800;cursor:pointer;font-family:inherit">CSV出力</button>
+          </div>
+          <button class="danger" onclick="resetAll()">全記録をリセット</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <nav>
+    <button class="on" data-s="home" onclick="nav('home')"><span class="ni">🚽</span><span class="nl">計測</span></button>
+    <button data-s="field" onclick="nav('field')"><span class="ni">🏟️</span><span class="nl">フィールド</span></button>
+    <button data-s="score" onclick="nav('score')"><span class="ni">🏆</span><span class="nl">スコア</span></button>
+    <button data-s="set" onclick="nav('set')"><span class="ni">⚙️</span><span class="nl">設定</span></button>
+  </nav>
+
+  <!-- timer overlay -->
+  <div class="overlay ov-timer" id="ovTimer">
+    <div class="measuring-badge" id="mBadge">💩 大 計測中…</div>
+    <div class="clock num" id="clock">0:00</div>
+    <div class="predict" id="predict">プレイボール！</div>
+    <div class="ov-actions">
+      <button class="cancel-btn" onclick="cancelMeasure()">やめる</button>
+      <button class="done-btn" onclick="finish()">ナイス<br>バッティング！</button>
+    </div>
+  </div>
+
+  <!-- result overlay -->
+  <div class="overlay ov-result" id="ovResult">
+    <div class="field-mini" id="miniField">
+      <svg viewBox="0 0 230 170" width="230" height="170">
+        <path d="M115 164 L20 74 A130 130 0 0 1 210 74 Z" fill="#2E9E5B" opacity=".55"/>
+        <path d="M115 164 L70 122 A62 62 0 0 1 160 122 Z" fill="#D98E4A" opacity=".7"/>
+        <line x1="115" y1="164" x2="20" y2="74" stroke="#fff" stroke-width="1.5" opacity=".7"/>
+        <line x1="115" y1="164" x2="210" y2="74" stroke="#fff" stroke-width="1.5" opacity=".7"/>
+        <path d="M70 122 A62 62 0 0 1 160 122" fill="none" stroke="#fff" stroke-width="1.2" opacity=".5" stroke-dasharray="4 3"/>
+      </svg>
+      <div class="ball" id="ball"></div>
+    </div>
+    <div class="stamp" id="stamp">HR!!</div>
+    <div class="bases-won num" id="basesWon"></div>
+    <div class="call" id="call"></div>
+    <div class="health-tip" id="healthTip" style="display:none"></div>
+    <button class="next-btn" onclick="closeResult()">次の打席へ ⚾</button>
+  </div>
+
+  <!-- generic modal -->
+  <div class="modal-bg" id="modalBg"><div class="modal" id="modalBox"></div></div>
+</div>
+
+<script>
+/* ============ state ============ */
+const STORE_KEY='tb_data_v2';
+const COM_TABLE={
+  rookie:[['OUT',.55],['H',.25],['2B',.10],['3B',.03],['HR',.07]],
+  pro:   [['OUT',.45],['H',.27],['2B',.13],['3B',.04],['HR',.11]],
+  legend:[['OUT',.38],['H',.27],['2B',.15],['3B',.05],['HR',.15]],
+};
+const COM_NAMES={rookie:'ベンピーズ',pro:'ベンピーズ',legend:'ベンピーズ'};
+const BASES={'1B':1,'2B':2,'3B':3,'HR':4,'H':1,'OUT':0,'FOUL':0,'EJECT':0};
+
+function defaultState(){return{
+  visits:[], games:{}, seasons:[],
+  settings:{thHR:5,thSm:2,diff:'pro',sound:false,seasonLen:7,seasonStartKey:null},
+};}
+let S=defaultState(), curRange='today', measuring=null, tick=null, memFallback={};
+
+/* ============ storage ============ */
+async function load(){
+  try{ if(window.storage){const r=await window.storage.get(STORE_KEY);
+    if(r&&r.value)S={...defaultState(),...JSON.parse(r.value)};}
+  }catch(e){}
+}
+async function save(){
+  try{ if(window.storage)await window.storage.set(STORE_KEY,JSON.stringify(S));
+    else memFallback[STORE_KEY]=JSON.stringify(S);
+  }catch(e){console.warn(e)}
+}
+
+/* ============ helpers ============ */
+function todayKey(d=new Date()){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function periodOf(d){const h=d.getHours(); if(h>=4&&h<11)return'morning'; if(h>=11&&h<17)return'noon'; return'evening';}
+function periodJP(p){return{morning:'朝',noon:'昼',evening:'晩'}[p];}
+function fmtClock(sec){const m=Math.floor(sec/60),s=sec%60;return m+':'+String(s).padStart(2,'0');}
+
+function judge(type,sec){
+  const min=sec/60, {thHR,thSm}=S.settings;
+  if(type==='small') return min<=thSm?{r:'H',label:'ヒット'}:{r:'OUT',label:'凡退'};
+  if(min<=1) return{r:'1B',label:'単打'};
+  if(min<=2) return{r:'2B',label:'二塁打'};
+  if(min<=3) return{r:'3B',label:'三塁打'};
+  if(min<=thHR) return{r:'HR',label:'ホームラン'};
+  if(min<=10) return{r:'FOUL',label:'場外ファウル'};
+  return{r:'EJECT',label:'強制交代'};
+}
+function predictLabel(type,sec){const j=judge(type,sec);
+  const good=(j.r==='HR'||j.r==='3B'||(type==='small'&&j.r==='H'));
+  const bad=(j.r==='FOUL'||j.r==='EJECT'||j.r==='OUT');
+  return{txt:j.label, color: good?'#7CFF9E': bad?'#FF9A9A':'#FFE08A',
+    sub: type==='big'
+      ? (sec<180?'今止めれば'+j.label+'。あと少しでHR！':j.r==='HR'?'理想ゾーン！ナイスタイミング':j.r==='FOUL'?'長すぎ…場外です':'交代の時間です')
+      : (j.r==='H'?'快速ヒット！':'2分オーバー…凡退ゾーン')};
+}
+const CALLS={
+  HR:['{p}一番、スタンド上段へ特大アーチ！🎆','{p}の打席、完璧に捉えた！文句なしのホームラン！','これは入った！{p}の柵越えホームラン！'],
+  '3B':['{p}、フェンス直撃の三塁打！惜しくも柵越えならず','大きい当たり！{p}の三塁打だ'],
+  '2B':['{p}、快音を残して二塁打！好調です','しっかり弾き返した{p}の二塁打'],
+  '1B':['{p}、コンパクトに運んで単打。手堅い！','{p}のクリーンヒット、快速でした'],
+  H:['{p}、内野を抜ける鮮やかなヒット！サクッと快打！','{p}、ノーステップで軽快なヒット！'],
+  FOUL:['あー飛びすぎた！{p}の打球は場外へ、ボールデッド…','{p}、粘りすぎてファウル。記録なりません'],
+  OUT:['{p}、タイミング合わず凡退。次の打席に期待','{p}、ちょっと長かった…凡退です'],
+  EJECT:['{p}、10分経過…ここで無情の強制交代！','長期戦すぎます！{p}、ドクターストップです'],
+};
+const HEALTH=['長時間の座位は痔やうっ血のリスク。次は早めの交代を！','5分以内が理想。スマホの持ち込みが長居の原因かも？','いきみ過ぎ・長居は体に負担。無理せずいきましょう。'];
+function pick(a){return a[Math.floor(Math.random()*a.length)];}
+
+/* ============ radial mapping (compressed foul) ============ */
+function radiusFor(min,R){const R1=R*0.58,R2=R*0.88,R3=R*1.0;
+  if(min<=3)return (min/3)*R1;
+  if(min<=5)return R1+((min-3)/2)*(R2-R1);
+  return R2+Math.min((min-5)/5,1)*(R3-R2);
+}
+
+/* ============ measure flow ============ */
+function start(type){
+  measuring={type,startedAt:Date.now(),period:periodOf(new Date())};
+  document.getElementById('mBadge').textContent=(type==='big'?'💩 大':'💧 小')+' 計測中…';
+  document.getElementById('ovTimer').classList.add('show');
+  updateTick(); tick=setInterval(updateTick,1000);
+}
+function updateTick(){
+  const sec=Math.floor((Date.now()-measuring.startedAt)/1000);
+  document.getElementById('clock').textContent=fmtClock(sec);
+  const p=predictLabel(measuring.type,sec), el=document.getElementById('predict');
+  el.style.color=p.color; el.innerHTML=p.txt+'<small>'+p.sub+'</small>';
+}
+function cancelMeasure(){clearInterval(tick);measuring=null;document.getElementById('ovTimer').classList.remove('show');}
+function finish(){
+  clearInterval(tick);
+  const sec=Math.max(1,Math.floor((Date.now()-measuring.startedAt)/1000));
+  const j=judge(measuring.type,sec);
+  const visit={id:'v'+Date.now(),type:measuring.type,startedAt:measuring.startedAt,
+    durationSec:sec,period:measuring.period,result:j.r,label:j.label,bases:BASES[j.r]};
+  S.visits.push(visit);
+  playComAtBat(visit);
+  save();
+  document.getElementById('ovTimer').classList.remove('show');
+  showResult(visit,j);
+  measuring=null;
+}
+
+/* ============ COM ============ */
+function comAtBat(){const t=COM_TABLE[S.settings.diff];let x=Math.random();
+  for(const [res,pr] of t){if(x<pr)return res;x-=pr;} return 'OUT';}
+function gameFor(dateKey){
+  if(!S.games[dateKey])S.games[dateKey]={date:dateKey,userBases:0,comBases:0,userAB:0,comLog:[]};
+  return S.games[dateKey];
+}
+function playComAtBat(visit){
+  const g=gameFor(todayKey(new Date(visit.startedAt)));
+  g.userBases+=visit.bases; g.userAB++;
+  const c=comAtBat(); g.comBases+=BASES[c]; g.comLog.push(c);
+}
+
+/* ============ season / pennant ============ */
+function addDays(key,n){const d=new Date(key+'T00:00:00');d.setDate(d.getDate()+n);return todayKey(d);}
+function gameOutcome(g){ // 'W' | 'L' | 'D' | null(no game)
+  if(!g||g.userAB<3)return null;
+  return g.userBases>g.comBases?'W':g.userBases<g.comBases?'L':'D';
+}
+// list of date keys in [start, start+len-1]
+function seasonDays(start,len){const a=[];for(let i=0;i<len;i++)a.push(addDays(start,i));return a;}
+function seasonRecord(start,len){
+  let w=0,l=0,d=0;
+  seasonDays(start,len).forEach(dk=>{const o=gameOutcome(S.games[dk]);
+    if(o==='W')w++;else if(o==='L')l++;else if(o==='D')d++;});
+  return{w,l,d,rate:(w+l)?w/(w+l):0};
+}
+function ensureSeason(){
+  if(!S.settings.seasonStartKey)S.settings.seasonStartKey=todayKey();
+  let guard=0;
+  while(guard++<2000){
+    const start=S.settings.seasonStartKey,len=S.settings.seasonLen;
+    const end=addDays(start,len-1);
+    if(todayKey()>end){
+      const rec=seasonRecord(start,len);
+      if(rec.w+rec.l+rec.d>0){ // archive only seasons that had games
+        S.seasons.push({start,end,len,w:rec.w,l:rec.l,d:rec.d,
+          champ:rec.w>rec.l?'you':rec.w<rec.l?'com':'draw'});
+      }
+      S.settings.seasonStartKey=addDays(end,1);
+    }else break;
+  }
+}
+
+/* ============ result overlay ============ */
+function showResult(visit,j){
+  const stamp=document.getElementById('stamp'), ball=document.getElementById('ball');
+  const call=document.getElementById('call'), bw=document.getElementById('basesWon');
+  const tip=document.getElementById('healthTip');
+  stamp.className='stamp'; stamp.textContent='';
+  const label={'1B':'ヒット！','2B':'ツーベース！','3B':'スリーベース！','HR':'HOMERUN!!','H':'ヒット！','FOUL':'ファウル…','EJECT':'交代…','OUT':'アウト…'}[j.r];
+  bw.textContent=visit.bases>0?'+'+visit.bases+' 塁打':'';
+  call.textContent=pick(CALLS[j.r]).replace('{p}',periodJP(visit.period));
+  tip.style.display='none';
+  // ball flight to landing point on mini field
+  const R=118, land=radiusFor(visit.durationSec/60,R);
+  const sect={morning:1,noon:0,evening:-1}[visit.period];
+  const ang=sect*30*Math.PI/180; // -30..30 deg from vertical
+  const cx=115, cy=164;
+  const lx=cx+land*Math.sin(ang), ly=cy-land*Math.cos(ang);
+  ball.style.transition='none'; ball.style.opacity='0';
+  ball.style.left='107px'; ball.style.bottom='6px';
+  document.getElementById('ovResult').classList.add('show');
+  requestAnimationFrame(()=>{
+    ball.style.transition='left .55s cubic-bezier(.2,.5,.4,1), top .55s cubic-bezier(.3,-.4,.6,.5), opacity .1s';
+    ball.style.opacity='1';
+    ball.style.left=(lx-8)+'px';
+    ball.style.top=(ly-8)+'px'; ball.style.bottom='auto';
+  });
+  setTimeout(()=>{
+    stamp.textContent=label;
+    stamp.classList.add('pop');
+    if(j.r==='FOUL')stamp.classList.add('foul');
+    if(j.r==='EJECT')stamp.classList.add('eject');
+    if(j.r==='HR'){confetti(); if(S.settings.sound)fanfare();}
+    if(j.r==='EJECT'){tip.style.display='block';tip.textContent='🩺 '+pick(HEALTH);}
+  },580);
+}
+function closeResult(){document.getElementById('ovResult').classList.remove('show');nav('home');}
+function confetti(){const cs=['#FFD24A','#E24B4A','#1D9E75','#7F77DD','#F5A623'];const box=document.getElementById('ovResult');
+  for(let i=0;i<26;i++){const c=document.createElement('div');c.className='confetti';
+    c.style.left=(20+Math.random()*60)+'%';c.style.background=cs[i%cs.length];
+    c.style.animationDuration=(1+Math.random()*0.8)+'s';c.style.animationDelay=(Math.random()*.3)+'s';
+    box.appendChild(c);requestAnimationFrame(()=>c.classList.add('go'));
+    setTimeout(()=>c.remove(),2200);}
+}
+let AC;
+function fanfare(){try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();
+  const notes=[523,659,784,1047];notes.forEach((f,i)=>{const o=AC.createOscillator(),g=AC.createGain();
+    o.type='square';o.frequency.value=f;o.connect(g);g.connect(AC.destination);
+    const t=AC.currentTime+i*.12;g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.15,t+.02);
+    g.gain.exponentialRampToValueAtTime(.0001,t+.3);o.start(t);o.stop(t+.32);});}catch(e){}}
+
+/* ============ navigation ============ */
+function nav(s){
+  document.querySelectorAll('.screen').forEach(x=>x.classList.remove('active'));
+  document.getElementById('s-'+s).classList.add('active');
+  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.s===s));
+  if(s==='home')renderHome();
+  if(s==='field')renderField();
+  if(s==='score')renderScore();
+  if(s==='set')renderSettings();
+}
+
+/* ============ HOME render ============ */
+function renderHome(){
+  const g=S.games[todayKey()]||{userBases:0,comBases:0,userAB:0};
+  document.getElementById('homeYou').textContent=g.userBases;
+  document.getElementById('homeCom').textContent=g.comBases;
+  document.getElementById('homeInning').textContent='本日 '+g.userAB+' 打席';
+  let st='プレイボール前';
+  if(g.userAB>0){ if(g.userAB<3)st='試合成立まであと'+(3-g.userAB)+'打席';
+    else st=g.userBases>g.comBases?'リード中 🔥':g.userBases<g.comBases?'ビハインド':'同点';}
+  document.getElementById('homeStatus').textContent=st;
+  document.getElementById('comName2').textContent=COM_NAMES[S.settings.diff];
+  document.getElementById('vsChip').textContent='vs '+COM_NAMES[S.settings.diff];
+}
+
+/* ============ FIELD render ============ */
+function setRange(r){curRange=r;document.querySelectorAll('#rangeSeg button').forEach(b=>b.classList.toggle('on',b.dataset.r===r));renderField();}
+function visitsInRange(){
+  const now=new Date();
+  return S.visits.filter(v=>{const d=new Date(v.startedAt);
+    if(curRange==='today')return todayKey(d)===todayKey(now);
+    if(curRange==='week'){const diff=(now-d)/86400000;return diff<=7;}
+    return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();});
+}
+function renderField(){
+  const vs=visitsInRange();
+  const W=380,H=380,cx=W/2,cy=H-34,R=254;   // fan: 45deg, span=1.414*R≈359 < W
+  const HALF=0.785; // 45deg foul lines
+  let marks='';
+  const groups={morning:[],noon:[],evening:[]}; vs.forEach(v=>groups[v.period].push(v));
+  vs.forEach(v=>{
+    const idx=groups[v.period].indexOf(v), n=groups[v.period].length;
+    const base={morning:30,noon:0,evening:-30}[v.period];
+    const spread=n>1?((idx/(n-1))-0.5)*26:0;
+    const ang=(base+spread)*Math.PI/180;
+    const rad=radiusFor(v.durationSec/60,R);
+    const x=cx+rad*Math.sin(ang), y=cy-rad*Math.cos(ang);
+    const over=v.bases===0; // 時間超過 = 凡退/ファウル/強制交代
+    if(v.type==='big'){
+      marks+=`<text x="${x}" y="${y+9}" text-anchor="middle" font-size="27" fill="${over?'#b98a8a':'#6a5fd6'}" stroke="#fff" stroke-width="0.8" font-family="Chango">★</text>`;
+    }else{
+      marks+=`<circle cx="${x}" cy="${y}" r="9" fill="${over?'#b98a8a':'#0b7a58'}" stroke="#fff" stroke-width="2"/>`;
+    }
+    if(over){ // bold red X overlay
+      marks+=`<line x1="${x-9}" y1="${y-9}" x2="${x+9}" y2="${y+9}" stroke="#E24B4A" stroke-width="3.5" stroke-linecap="round"/>
+        <line x1="${x-9}" y1="${y+9}" x2="${x+9}" y2="${y-9}" stroke="#E24B4A" stroke-width="3.5" stroke-linecap="round"/>`;
+    }
+  });
+  const R1=R*0.58,R2=R*0.88, s=Math.sin(HALF),c=Math.cos(HALF);
+  const svg=`<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMax meet">
+    <path d="M${cx} ${cy} L${cx-R*s} ${cy-R*c} A${R} ${R} 0 0 1 ${cx+R*s} ${cy-R*c} Z" fill="#fff" opacity=".08"/>
+    <path d="M${cx} ${cy} L${cx-R2*s} ${cy-R2*c} A${R2} ${R2} 0 0 1 ${cx+R2*s} ${cy-R2*c} Z" fill="#F5A623" opacity=".30"/>
+    <path d="M${cx} ${cy} L${cx-R1*s} ${cy-R1*c} A${R1} ${R1} 0 0 1 ${cx+R1*s} ${cy-R1*c} Z" fill="#2e7d47" opacity=".42"/>
+    <path d="M${cx} ${cy} L${cx-R*0.3*s} ${cy-R*0.3*c} A${R*0.3} ${R*0.3} 0 0 1 ${cx+R*0.3*s} ${cy-R*0.3*c} Z" fill="#D98E4A" opacity=".6"/>
+    <line x1="${cx}" y1="${cy}" x2="${cx-R*s}" y2="${cy-R*c}" stroke="#fff" stroke-width="2.5" opacity=".85"/>
+    <line x1="${cx}" y1="${cy}" x2="${cx+R*s}" y2="${cy-R*c}" stroke="#fff" stroke-width="2.5" opacity=".85"/>
+    <path d="M${cx-R1*s} ${cy-R1*c} A${R1} ${R1} 0 0 1 ${cx+R1*s} ${cy-R1*c}" fill="none" stroke="#fff" stroke-width="1.5" opacity=".6"/>
+    <path d="M${cx-R2*s} ${cy-R2*c} A${R2} ${R2} 0 0 1 ${cx+R2*s} ${cy-R2*c}" fill="none" stroke="#E24B4A" stroke-width="2" opacity=".9" stroke-dasharray="6 4"/>
+    <text x="${cx+R*0.74*Math.sin(0.55)}" y="${cy-R*0.74*Math.cos(0.55)}" fill="#fff" font-size="17" font-weight="900" text-anchor="middle">朝</text>
+    <text x="${cx+R*0.74*Math.sin(0.55)}" y="${cy-R*0.74*Math.cos(0.55)+15}" fill="#eafff2" font-size="10" font-weight="800" text-anchor="middle">4-11時</text>
+    <text x="${cx}" y="${cy-R*0.82}" fill="#fff" font-size="17" font-weight="900" text-anchor="middle">昼</text>
+    <text x="${cx}" y="${cy-R*0.82+15}" fill="#eafff2" font-size="10" font-weight="800" text-anchor="middle">11-17時</text>
+    <text x="${cx-R*0.74*Math.sin(0.55)}" y="${cy-R*0.74*Math.cos(0.55)}" fill="#fff" font-size="17" font-weight="900" text-anchor="middle">晩</text>
+    <text x="${cx-R*0.74*Math.sin(0.55)}" y="${cy-R*0.74*Math.cos(0.55)+15}" fill="#eafff2" font-size="10" font-weight="800" text-anchor="middle">17-4時</text>
+    <text x="${cx+R1*Math.sin(0.35)+10}" y="${cy-R1*Math.cos(0.35)}" fill="#fff" font-size="12" font-weight="800">3分</text>
+    <text x="${cx+R2*Math.sin(0.28)+8}" y="${cy-R2*Math.cos(0.28)}" fill="#ffd9d9" font-size="12" font-weight="800">5分</text>
+    <rect x="${cx-9}" y="${cy-3}" width="18" height="18" rx="3" fill="#fff" opacity=".85" transform="rotate(45 ${cx} ${cy+6})"/>
+    ${marks}
+  </svg>`;
+  document.getElementById('fieldSvg').innerHTML=svg;
+  const empty=document.querySelector('#fieldFull .field-empty');
+  if(empty)empty.remove();
+  if(!vs.length){const e=document.createElement('div');e.className='field-empty';
+    e.textContent='まだ打席がありません。トイレに行ったら記録しよう！⚾';
+    document.getElementById('fieldFull').appendChild(e);}
+  // stats
+  const hrs=vs.filter(v=>v.result==='HR').length;
+  const hits=vs.filter(v=>['1B','2B','3B','HR','H'].includes(v.result)).length;
+  const avg=vs.length?(vs.reduce((a,v)=>a+v.durationSec,0)/vs.length/60):0;
+  const rate=vs.length?(hits/vs.length):0;
+  document.getElementById('fieldStats').innerHTML=
+    `<div class="stat"><div class="v">${rate.toFixed(3).replace(/^0/,'')}</div><div class="l">打率</div></div>
+     <div class="stat"><div class="v">${hrs}</div><div class="l">本塁打</div></div>
+     <div class="stat"><div class="v">${avg.toFixed(1)}</div><div class="l">平均滞在(分)</div></div>`;
+}
+
+/* ============ SCORE render ============ */
+function renderScore(){
+  const g=S.games[todayKey()];
+  let html='';
+  // today's game
+  html+='<div class="card"><h3>📋 本日の試合</h3>';
+  if(!g||g.userAB===0){html+='<div class="empty">まだ打席がありません</div>';}
+  else{
+    const settled=g.userAB>=3;
+    const outcome=!settled?'ng':g.userBases>g.comBases?'w':g.userBases<g.comBases?'l':'ng';
+    const pill=!settled?'<span class="pill ng">ノーゲーム(3打席未満)</span>':
+      outcome==='w'?'<span class="pill w">勝利 🎉</span>':outcome==='l'?'<span class="pill l">敗戦</span>':'<span class="pill ng">引き分け</span>';
+    html+=`<table class="linescore"><thead><tr><th style="text-align:left">チーム</th><th>打席</th><th>塁打(得点)</th></tr></thead><tbody>
+      <tr><td class="rlabel">🧢 あなた</td><td>${g.userAB}</td><td class="tot" style="color:var(--amber-dk)">${g.userBases}</td></tr>
+      <tr><td class="rlabel">👿 ${COM_NAMES[S.settings.diff]}</td><td>${g.comLog.length}</td><td class="tot" style="color:var(--red)">${g.comBases}</td></tr>
+      </tbody></table><div style="text-align:center;margin-top:10px">${pill}</div>`;
+    html+='<div style="font-size:11px;font-weight:800;color:#8a7f6d;margin-top:12px">COMの打席</div><div class="com-log">'+
+      g.comLog.map(c=>{const cls=c==='HR'?'hr':c==='OUT'?'':'hit';return `<span class="ab ${cls}">${c}</span>`;}).join('')+'</div>';
+  }
+  html+='</div>';
+  // ===== current season pennant =====
+  ensureSeason();
+  const start=S.settings.seasonStartKey,len=S.settings.seasonLen;
+  const days=seasonDays(start,len), rec=seasonRecord(start,len);
+  const dayIdx=days.indexOf(todayKey()); // -1 if today outside (shouldn't after ensure)
+  const dayNo=dayIdx>=0?dayIdx+1:len;
+  // streak within season (chronological)
+  let streak=0;
+  days.forEach(dk=>{const o=gameOutcome(S.games[dk]);
+    if(o==='W')streak=streak>=0?streak+1:1; else if(o==='L')streak=streak<=0?streak-1:-1;});
+  const magic=Math.ceil(len/2); // simple "優勝マジック" = games to clinch majority
+  html+=`<div class="card"><h3>🏆 ペナントレース</h3>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;font-weight:800;font-size:13px;color:#8a7f6d">
+      <span>第 ${S.seasons.length+1} シーズン</span><span>Day ${dayNo} / ${len}</span></div>
+    <div style="display:flex;justify-content:space-around;text-align:center;margin-bottom:10px">
+      <div><div class="streak">${rec.w}</div><div style="font-size:11px;font-weight:800;color:#8a7f6d">勝</div></div>
+      <div><div class="streak" style="color:var(--red)">${rec.l}</div><div style="font-size:11px;font-weight:800;color:#8a7f6d">敗</div></div>
+      <div><div class="streak" style="color:var(--navy)">${rec.rate.toFixed(3).replace(/^0/,'')}</div><div style="font-size:11px;font-weight:800;color:#8a7f6d">勝率</div></div>
+      <div><div class="streak" style="color:${streak<0?'var(--red)':'var(--teal)'}">${streak>0?streak+'連勝':streak<0?(-streak)+'連敗':'—'}</div><div style="font-size:11px;font-weight:800;color:#8a7f6d">連勝</div></div>
+    </div>`;
+  // per-day strip
+  html+='<div style="display:flex;gap:5px;flex-wrap:wrap">';
+  days.forEach((dk,i)=>{const o=gameOutcome(S.games[dk]);const today=dk===todayKey();
+    const future=dk>todayKey();
+    const bg=o==='W'?'var(--teal)':o==='L'?'var(--red)':o==='D'?'#8a7f6d':future?'#eee6d7':'#d6cbb8';
+    const col=o||future?'#fff':'#fff';
+    const face=future?'':o==='W'?'勝':o==='L'?'負':o==='D'?'分':'—';
+    html+=`<div style="flex:1;min-width:34px;text-align:center;padding:7px 2px;border-radius:8px;
+      background:${future?'#eee6d7':bg};color:${future?'#b3a894':'#fff'};font-weight:900;font-size:12px;
+      ${today?'outline:2px solid var(--gold);outline-offset:1px':''}">
+      <div style="font-size:9px;opacity:.85">D${i+1}</div>${future?'·':face}</div>`;});
+  html+='</div></div>';
+
+  // ===== past seasons =====
+  if(S.seasons.length){
+    html+='<div class="card"><h3>📜 過去のシーズン</h3>';
+    S.seasons.slice(-8).reverse().forEach((ss,i)=>{
+      const no=S.seasons.length-i;
+      const champ=ss.champ==='you'?'<span class="pill w">あなた優勝 🏆</span>':ss.champ==='com'?'<span class="pill l">COM優勝</span>':'<span class="pill ng">引き分け</span>';
+      html+=`<div class="month-row"><span>第${no}S (${ss.start.slice(5)}〜)</span><span>${ss.w}勝${ss.l}敗</span>${champ}</div>`;});
+    html+='</div>';
+  }
+  // recent games
+  html+='<div class="card"><h3>📅 最近の試合</h3>';
+  const dates=Object.keys(S.games).sort();
+  const recent=dates.slice(-7).reverse();
+  if(!recent.length)html+='<div class="empty">記録なし</div>';
+  else recent.forEach(dk=>{const gg=S.games[dk];const o=gameOutcome(gg);
+    const res=!o?'<span class="pill ng">NG</span>':o==='W'?'<span class="pill w">勝</span>':o==='L'?'<span class="pill l">負</span>':'<span class="pill ng">分</span>';
+    html+=`<div class="month-row"><span>${dk.slice(5)}</span><span>${gg.userBases} - ${gg.comBases}</span>${res}</div>`;});
+  html+='</div>';
+  // history
+  html+='<div class="card"><h3>📖 打席履歴</h3>';
+  const rv=S.visits.slice(-12).reverse();
+  if(!rv.length)html+='<div class="empty">記録なし</div>';
+  else rv.forEach(v=>{const d=new Date(v.startedAt);
+    const ic=v.type==='big'?'💩':'💧';
+    const good=['HR','3B','H'].includes(v.result);
+    html+=`<div class="hrow"><span class="hic">${ic}</span>
+      <div class="hmid"><div class="hres" style="color:${good?'var(--teal)':v.bases===0?'var(--red)':'var(--navy)'}">${v.label}</div>
+      <div class="hsub">${periodJP(v.period)}・${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}</div></div>
+      <span class="htime num">${fmtClock(v.durationSec)}</span>
+      <button class="del" onclick="delVisit('${v.id}')">✕</button></div>`;});
+  html+='</div>';
+  document.getElementById('scoreBody').innerHTML=html;
+}
+function delVisit(id){
+  const v=S.visits.find(x=>x.id===id);if(!v)return;
+  S.visits=S.visits.filter(x=>x.id!==id);
+  // recompute that day's game
+  const dk=todayKey(new Date(v.startedAt));
+  if(S.games[dk]){const g=S.games[dk];g.userBases-=v.bases;g.userAB--;
+    if(g.comLog.length){const c=g.comLog.pop();g.comBases-=BASES[c];}
+    if(g.userAB<=0)delete S.games[dk];}
+  save();renderScore();
+}
+
+/* ============ SETTINGS ============ */
+function renderSettings(){
+  document.querySelectorAll('#diffSeg button').forEach(b=>b.classList.toggle('on',b.dataset.d===S.settings.diff));
+  document.querySelectorAll('#seasonSeg button').forEach(b=>b.classList.toggle('on',+b.dataset.n===S.settings.seasonLen));
+  document.getElementById('thHR').value=S.settings.thHR;document.getElementById('thHRv').textContent=S.settings.thHR;
+  document.getElementById('thSm').value=S.settings.thSm;document.getElementById('thSmv').textContent=S.settings.thSm;
+  document.getElementById('soundTg').classList.toggle('on',S.settings.sound);
+  // month options for CSV (months that have visits, plus current month)
+  const set=new Set(S.visits.map(v=>{const d=new Date(v.startedAt);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');}));
+  const nowMk=new Date().getFullYear()+'-'+String(new Date().getMonth()+1).padStart(2,'0');
+  set.add(nowMk);
+  const months=[...set].sort().reverse();
+  const sel=document.getElementById('csvMonth');
+  sel.innerHTML=months.map(m=>`<option value="${m}">${m.replace('-','年')}月</option>`).join('');
+}
+function setDiff(d){S.settings.diff=d;save();renderSettings();}
+function setSeasonLen(n){S.settings.seasonLen=n;ensureSeason();save();renderSettings();}
+function setTh(k,v){if(k==='hr'){S.settings.thHR=+v;document.getElementById('thHRv').textContent=v;}
+  else{S.settings.thSm=+v;document.getElementById('thSmv').textContent=v;}save();}
+function toggleSound(){S.settings.sound=!S.settings.sound;save();renderSettings();}
+function exportCSV(){
+  const mk=document.getElementById('csvMonth').value; // YYYY-MM
+  const rows=S.visits.filter(v=>{const d=new Date(v.startedAt);
+    return (d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'))===mk;})
+    .sort((a,b)=>a.startedAt-b.startedAt);
+  const head=['日付','時刻','種類','滞在秒','滞在分','時間帯','判定','塁打','入力方法'];
+  const typeJP={big:'大',small:'小'};
+  const lines=[head.join(',')];
+  rows.forEach(v=>{const d=new Date(v.startedAt);
+    lines.push([
+      todayKey(d),
+      String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'),
+      typeJP[v.type], v.durationSec, (v.durationSec/60).toFixed(1),
+      periodJP(v.period), v.label, v.bases, v.manual?'手動':'計測'
+    ].join(','));
+  });
+  // BOM for Excel japanese
+  const csv='\uFEFF'+lines.join('\r\n');
+  const fname='toilet-baseball_'+mk+'.csv';
+  try{
+    const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');a.href=url;a.download=fname;
+    document.body.appendChild(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),1000);
+  }catch(e){ csvFallback(csv,rows.length,mk); return; }
+  if(!rows.length){ // still notify empty
+    modal('CSV出力',mk.replace('-','年')+'月のデータは0件です。ヘッダのみのファイルを出力しました。',()=>{});
+  }
+}
+function csvFallback(csv,count,mk){
+  const box=document.getElementById('modalBox');
+  box.innerHTML=`<h4>CSV（${mk.replace('-','年')}月・${count}件）</h4>
+    <p>ダウンロードできない環境のため、下のテキストをコピーしてください。</p>
+    <textarea readonly style="width:100%;height:130px;font-family:monospace;font-size:11px;border:1px solid var(--line);border-radius:8px;padding:8px">${csv.replace(/</g,'&lt;')}</textarea>
+    <div class="row" style="margin-top:10px"><button class="no" onclick="closeModal()">閉じる</button>
+    <button class="ok" onclick="navigator.clipboard&&navigator.clipboard.writeText(this.closest('.modal').querySelector('textarea').value);this.textContent='コピー済み'">コピー</button></div>`;
+  document.getElementById('modalBg').classList.add('show');
+}
+function resetAll(){modal('全記録をリセット','打席・試合成績・シーズンがすべて消えます。取り消せません。',()=>{
+  S=defaultState();ensureSeason();save();nav('home');});}
+
+/* ============ manual entry ============ */
+function nowLocalStr(){const d=new Date();d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,16);}
+function openManual(){
+  const box=document.getElementById('modalBox');
+  box.innerHTML=`<h4>あとから記録</h4>
+    <select id="mType"><option value="big">💩 大</option><option value="small">💧 小</option></select>
+    <label style="display:block;text-align:left;font-size:11px;font-weight:800;color:#8a7f6d;margin-top:6px">行った日時</label>
+    <input id="mWhen" type="datetime-local" value="${nowLocalStr()}">
+    <label style="display:block;text-align:left;font-size:11px;font-weight:800;color:#8a7f6d;margin-top:2px">滞在時間（分）</label>
+    <input id="mMin" type="number" min="0" step="0.5" placeholder="例: 3.5" inputmode="decimal">
+    <div class="row"><button class="no" onclick="closeModal()">やめる</button><button class="ok" onclick="saveManual()">記録する</button></div>`;
+  document.getElementById('modalBg').classList.add('show');
+}
+function saveManual(){
+  const type=document.getElementById('mType').value;
+  const min=parseFloat(document.getElementById('mMin').value);
+  const whenStr=document.getElementById('mWhen').value;
+  if(!min||min<=0||!whenStr){return;}
+  const when=new Date(whenStr), started=when.getTime();
+  const sec=Math.round(min*60),j=judge(type,sec),per=periodOf(when);
+  const visit={id:'v'+started+'_'+Math.floor(Math.random()*1000),type,startedAt:started,
+    durationSec:sec,period:per,result:j.r,label:j.label,bases:BASES[j.r],manual:true};
+  S.visits.push(visit);playComAtBat(visit);ensureSeason();save();closeModal();
+  showResult(visit,j);
+}
+function modal(title,msg,onOk){
+  const box=document.getElementById('modalBox');
+  box.innerHTML=`<h4>${title}</h4><p>${msg}</p><div class="row">
+    <button class="no" onclick="closeModal()">やめる</button>
+    <button class="ok" id="mOk">OK</button></div>`;
+  document.getElementById('modalBg').classList.add('show');
+  document.getElementById('mOk').onclick=()=>{closeModal();onOk();};
+}
+function closeModal(){document.getElementById('modalBg').classList.remove('show');}
+
+/* ============ boot ============ */
+(async()=>{await load();ensureSeason();save();nav('home');})();
+</script>
