@@ -1,4 +1,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#1B2A4A">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="トイベー">
+<title>トイレ・ベースボール</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800;900&family=Chango&display=swap" rel="stylesheet">
@@ -271,6 +277,12 @@
     <!-- SETTINGS -->
     <section class="screen" id="s-set">
       <div class="pad">
+        <div class="card" style="background:linear-gradient(180deg,#243A63,#1B2A4A);color:#fff;box-shadow:0 3px 0 #0d1830">
+          <h3 style="color:#fff">📲 アプリとして使う</h3>
+          <p style="font-size:12px;font-weight:700;color:rgba(255,255,255,.8);margin:0 0 12px">
+            ホーム画面に追加すると全画面のアプリになり、記録はこの端末に自動保存されます（閉じても消えません）。</p>
+          <button onclick="howToInstall()" style="width:100%;border:none;background:var(--gold);color:var(--navy);border-radius:10px;padding:12px;font-weight:900;cursor:pointer;font-family:inherit">追加のしかたを見る</button>
+        </div>
         <div class="card">
           <h3>⚾ 難易度（COMの強さ）</h3>
           <div class="diff-seg" id="diffSeg">
@@ -383,16 +395,24 @@ function defaultState(){return{
 };}
 let S=defaultState(), curRange='today', measuring=null, tick=null, memFallback={};
 
-/* ============ storage ============ */
+/* ============ storage (localStorage first, then window.storage, then memory) ============ */
 async function load(){
+  // 1) localStorage — persists when opened as a real page / home-screen app
+  try{ const v=localStorage.getItem(STORE_KEY);
+    if(v){S={...defaultState(),...JSON.parse(v)};return;} }catch(e){}
+  // 2) window.storage — used inside the Claude artifact preview
   try{ if(window.storage){const r=await window.storage.get(STORE_KEY);
-    if(r&&r.value)S={...defaultState(),...JSON.parse(r.value)};}
-  }catch(e){}
+    if(r&&r.value){S={...defaultState(),...JSON.parse(r.value)};return;}} }catch(e){}
+  // 3) in-memory fallback (session only)
+  try{ if(memFallback[STORE_KEY])S={...defaultState(),...JSON.parse(memFallback[STORE_KEY])}; }catch(e){}
 }
-async function save(){
-  try{ if(window.storage)await window.storage.set(STORE_KEY,JSON.stringify(S));
-    else memFallback[STORE_KEY]=JSON.stringify(S);
-  }catch(e){console.warn(e)}
+function save(){
+  const v=JSON.stringify(S);
+  let saved=false;
+  try{ localStorage.setItem(STORE_KEY,v); saved=true; }catch(e){}
+  try{ if(window.storage) window.storage.set(STORE_KEY,v); saved=true; }catch(e){}
+  memFallback[STORE_KEY]=v;
+  return saved;
 }
 
 /* ============ helpers ============ */
@@ -850,6 +870,44 @@ function modal(title,msg,onOk){
 }
 function closeModal(){document.getElementById('modalBg').classList.remove('show');}
 
+/* ============ PWA: runtime icon + manifest ============ */
+function setupPWA(){
+  let pngUrl='';
+  try{
+    const c=document.createElement('canvas');c.width=c.height=180;const x=c.getContext('2d');
+    x.fillStyle='#1B2A4A';x.fillRect(0,0,180,180);            // iOS masks corners itself
+    x.fillStyle='#FFD24A';x.font='700 30px sans-serif';x.textAlign='center';x.textBaseline='middle';
+    x.fillText('⚾',90,66);
+    x.fillText('トイベー',90,124);
+    pngUrl=c.toDataURL('image/png');
+    let l=document.querySelector('link[rel="apple-touch-icon"]');
+    if(!l){l=document.createElement('link');l.rel='apple-touch-icon';document.head.appendChild(l);}
+    l.href=pngUrl;
+  }catch(e){}
+  try{
+    const mf={name:'トイレ・ベースボール',short_name:'トイベー',display:'standalone',
+      background_color:'#1B2A4A',theme_color:'#1B2A4A',orientation:'portrait',start_url:'./',
+      icons: pngUrl?[{src:pngUrl,sizes:'180x180',type:'image/png',purpose:'any'},
+                     {src:pngUrl,sizes:'512x512',type:'image/png',purpose:'any'}]:[]};
+    const url='data:application/manifest+json,'+encodeURIComponent(JSON.stringify(mf));
+    let m=document.querySelector('link[rel="manifest"]');
+    if(!m){m=document.createElement('link');m.rel='manifest';document.head.appendChild(m);}
+    m.href=url;
+  }catch(e){}
+}
+function howToInstall(){
+  const box=document.getElementById('modalBox');
+  const ios=/iP(hone|ad|od)/.test(navigator.userAgent);
+  const steps=ios
+    ? '1. 画面下の「共有」ボタン（□↑）をタップ<br>2.「ホーム画面に追加」を選択<br>3.「追加」をタップ'
+    : '1. ブラウザのメニュー（⋮）を開く<br>2.「アプリをインストール」または「ホーム画面に追加」を選択<br>3. 確認して追加';
+  box.innerHTML=`<h4>📲 ホーム画面に追加</h4>
+    <p style="text-align:left;line-height:1.7">${steps}</p>
+    <p style="text-align:left">追加すると全画面のアプリとして起動し、記録はこの端末に自動保存されます。</p>
+    <div class="row"><button class="ok" onclick="closeModal()">わかった</button></div>`;
+  document.getElementById('modalBg').classList.add('show');
+}
+
 /* ============ boot ============ */
-(async()=>{await load();ensureSeason();save();nav('home');})();
+(async()=>{await load();ensureSeason();save();setupPWA();nav('home');})();
 </script>
